@@ -176,3 +176,8 @@ cython_debug/
 *.csv
 xls/
 
+# compressed files
+*.zip
+*.7z
+*.rar
+
