@@ -141,11 +141,10 @@ def ColumnHead(ws: Worksheet, cells: tuple[Cell]=None, meta_args: dict=None, fie
         try:
             if rgexp:
                 col_vals = str_capture_draw(col_vals, rgexp)
-            yield col_vals
         except ValueError:
             if non_blank:
                 break
-            yield col_vals
+        yield col_vals
 
 
 def ColumnUnited(ws: Worksheet, cells: tuple[Cell]=None, meta_args: dict=None, field_args: dict=None) -> Iterable:

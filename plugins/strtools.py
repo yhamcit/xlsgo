@@ -20,7 +20,21 @@ def str_capture_draw(ts: tuple | list, rgexp: str=None):
     if not any(t for t in ts):
         raise ValueError()
 
-    return tuple(' '.join(g for g in match(rgexp, str(t)).groups()) for t in ts)
+    def each_capture(ts):
+        for t in ts:
+            m = match(rgexp, str(t))
+            if not m:
+                yield ''
+                continue
+
+            glst = list()
+            for g in m.groups():
+                if g:
+                    glst.append(g)
+
+            yield ''.join(glst)
+
+    return tuple(each_capture(ts))
 
 
 def str_union(ts: tuple|list, cs: tuple|list, concat_mod: str=None, format_mod: str=None) -> Iterable:

@@ -24,7 +24,8 @@ def csv_converter(file_name: str, fd: BufferedReader|BufferedIOBase):
     ws = wb.create_sheet(splitext(file_name)[0])
 
     for row in csv_reader(fd):
-        ws.append(row)
+        line = [cell.replace('\t', '') if isinstance(cell, str) else cell for cell in row]
+        ws.append(line)
 
     return wb
 
@@ -116,7 +117,7 @@ def is_csv_file(file_name: str) -> bool:
 def is_zip_file(file_path: str) -> bool:
     return is_zip(file_path)
 
-def xls_in_zip(ar: ZipFile):
+def xls_in_zip(ar: ZipFile, ar_name: str):
     for member_name in ar.namelist():
         arp = Path(ar, member_name)
         if arp.is_dir():
@@ -127,7 +128,7 @@ def xls_in_zip(ar: ZipFile):
             continue
 
         with ar.open(member_name, 'r') as fd:
-            yield fd, file_name
+            yield fd, ar_name
 
 
 def xls_in_dir(xl_dir: str):
@@ -141,12 +142,12 @@ def xls_in_dir(xl_dir: str):
             if is_xl_file(file_name):
                 with open(file_path, 'rb') as fd:
                     yield fd, file_name
-            if is_csv_file(file_path):
+            elif is_csv_file(file_path):
                 with open(file_path, 'rt') as fd:
                     yield fd, file_name
-        elif isfile(file_path) and is_zip_file(file_path):
-            with ZipFile(file_path) as ar:
-                yield from xls_in_zip(ar)
+            elif is_zip_file(file_path):
+                with ZipFile(file_path) as ar:
+                    yield from xls_in_zip(ar, file_name)
 
         elif isdir(file_path):
             yield from xls_in_dir(file_path)
@@ -160,6 +161,8 @@ def main(source: str='xls', out: str='xls', conf: str=''):
     try:
         delivered_data_packs: list[dict] = list()
         root_dir = getcwd()
+        inc_files = list()
+        exc_files = list()
 
         try:
             acc_conf = load("/".join((root_dir, conf)))
@@ -198,15 +201,18 @@ def main(source: str='xls', out: str='xls', conf: str=''):
                 pack = post_masquerade(pol_meta, collection)
                 assemble_data_pack(delivered_data_packs, pack, v_set)
 
+                inc_files.append(xl_name)
                 print(f"  ==: {xl_name} 处理完成！")
                 break
             else:
+                exc_files.append(xl_name)
                 print(f"  ==: 没有为 {xl_name} 配置描述项，已忽略！")
 
         write_file(delivered_data_packs, out_path, v_set)
         print(f"  ==========: 生成文件 {out_path} 。")
 
-        input("任务运行完毕。 ")
+        input(f"任务运行完毕, 共处理 {len(inc_files)} 个文件"
+              f"{f"，已发现但未处理的文件有：{str(exc_files)}; " if len(exc_files) else ""}，回车以退出。")
 
     except AssertionError as asr_err:
         print(f"《《《错误中止》》》： {str(asr_err)}")

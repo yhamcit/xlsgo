@@ -6,7 +6,7 @@ from tomli import load as loadconf
 from src import METADATA, MERGE_POLICY, POLICYNAME, WRITETO, VALUESET
 
 
-def load (path: str, name: str='sample.toml'):
+def load (path: str, name: str='accounts.txt'):
     with open(f"{path}/{name}", "rb") as f:
         toml_dict = loadconf(f)
 
