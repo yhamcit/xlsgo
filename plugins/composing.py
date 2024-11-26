@@ -43,8 +43,12 @@ def TimestampNonceFromDate(sources: tuple[Iterable], arguments: dict=None) -> It
     prec, ndigtc = arguments[PRECISION], arguments[NONCEDIGITS]
     assert prec and ndigtc, f"{PRECISION}: {prec}; {NONCEDIGITS}: {ndigtc} 应为非空非零的有效值。"
 
-    for k, v in (p for l in sources for p in l):
-        nonce = sample(tuple('0123456789'), ndigtc)
-        ts = strf_time_ts(v)
-        yield (f"{int(mktime(ts) * prec)}{''.join(nonce)}",), v
+    lst = list(sources)
+    if len(lst) == 0:
+        yield tuple(), tuple()
+    else:
+        for k, v in (p for l in lst for p in l):
+            nonce = sample(tuple('0123456789'), ndigtc)
+            ts = strf_time_ts(v)
+            yield (f"{int(mktime(ts) * prec)}{''.join(nonce)}",), v
 

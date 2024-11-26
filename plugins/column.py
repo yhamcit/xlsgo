@@ -142,8 +142,8 @@ def ColumnHead(ws: Worksheet, cells: tuple[Cell]=None, meta_args: dict=None, fie
             if rgexp:
                 col_vals = str_capture_draw(col_vals, rgexp)
         except ValueError:
-            if non_blank:
-                break
+            assert not non_blank, f"'非空列取得空值，数据：{''.join(col_vals)}':捕获'{rgexp}' "
+
         yield col_vals
 
 
@@ -190,21 +190,19 @@ def IdentifyByColumn(ws: Worksheet, cells: tuple[Cell]=None, meta_args: dict=Non
 
     cell_names = [c.value for c in cells]
     try:
-        cell_idxes = tuple(cell_names.index(k) for k in dc_map.keys())
+        cell_indxes = tuple(cell_names.index(k) for k in dc_map.keys())
 
         for row in ColumnHead(ws, cells, meta_args=meta_args, field_args=field_args):
-            for i in cell_idxes:
+            for i in cell_indxes:
                 if not row[i]:
                     continue
                 yield (dc_map[cell_names[i]], )
                 break
             else:
-                if non_blank:
-                    break
+                assert not non_blank, f"'非空列取得空值，数列：{','.join(str(cell_indxes))}。"
                 yield ('', )
     except ValueError as err:
-        assert False, (f" {DC_ID_KV} 配置项 {''.join(err.args)} 不完全属于配置列表头"
-                       f" {''.join(c.coordinate for c in cells)} 的取值范围。")
+        assert False, f"{DC_ID_KV} 配置：'{str(err)}'与配置列头 {':'.join(c.coordinate for c in cells)} 的取值不符。"
 
 
 

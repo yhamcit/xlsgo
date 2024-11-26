@@ -17,24 +17,19 @@ def strf_time_ts(*ts: tuple|list, format: str= r"%Y-%m-%d %H:%M:%S") -> float:
 
 
 def str_capture_draw(ts: tuple | list, rgexp: str=None):
+    result = list()
+    for t in ts:
+        if t:
+            m = match(rgexp, str(t))
+            rt = ''.join(gt if gt else '' for gt in m.groups())
+        else:
+            rt = ''
+        result.append(rt)
+
     if not any(t for t in ts):
         raise ValueError()
 
-    def each_capture(ts):
-        for t in ts:
-            m = match(rgexp, str(t))
-            if not m:
-                yield ''
-                continue
-
-            glst = list()
-            for g in m.groups():
-                if g:
-                    glst.append(g)
-
-            yield ''.join(glst)
-
-    return tuple(each_capture(ts))
+    return tuple(result)
 
 
 def str_union(ts: tuple|list, cs: tuple|list, concat_mod: str=None, format_mod: str=None) -> Iterable:

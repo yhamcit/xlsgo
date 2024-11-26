@@ -21,12 +21,12 @@ def run_policy(policy: dict[str, dict], binding: dict[str, Iterable], policy_nam
             plugin_name = attr[PLUGIN]
             fn = load_plugin(plugin_name)
 
+            arguments = None
             if ARGUMENT in attr:
                 arguments = attr[ARGUMENT]
                 assert arguments, f"策略项 {key} 插件不能使用参数 '{str(arguments)}'"
-                data[key] = fn(zip(*(binding[source] for source in attr[DATASOURCE])), arguments)
-            else:
-                data[key] = fn(zip(*(binding[source] for source in attr[DATASOURCE])))
+            data[key] = fn(zip(*(binding[source] for source in attr[DATASOURCE])), arguments)
+
         except KeyError as kerr:
             raise BaseException(f"账户-{acc_name} 策略-{policy_name} 要求的数据源 {kerr.args[0]} 在银行账号配置中没有呈现。")
         except RuntimeError as e:

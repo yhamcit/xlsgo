@@ -26,7 +26,7 @@ def read_xlsx(abb_name: str, wb: Workbook, meta:dict, acc_des: dict):
                 assert False, f"{abb_name} {WSNAME_PATTERN} 参数未配置，加载默认工作表错误，原因 {err.args}"
             return read_xl_sheet(ws, meta, acc_des)
     else:
-        raise Exception(f"在所有表单中，都没有找到匹配 {WSNAME_PATTERN} 的表单，检查配置是否错误。")
+        raise Exception(f"在所有表单中，都没有找到符合 {wsn_ptn} 命名的表单，检查配置是否错误。")
 
 
 def read_xl_sheet(ws: Worksheet, meta: dict, attrs: dict) -> dict:
