@@ -38,7 +38,11 @@ def read_table_file(name: str, meta: dict, confs: dict, file_name: str, fd: Buff
         wb = csv_converter(file_name, fd)
         assert wb
     elif file_name.endswith('.xls'):
-        wb = XLS2XLSX(fd).to_xlsx()
+        try:
+            wb = XLS2XLSX(fd).to_xlsx()
+        except ValueError as e:
+            if len(e.args) > 0 and e.args[0].__class__.__name__ == 'XLRDError':
+                wb = load_workbook(fd)
     else:
         raise Exception(f"{file_name} 既不是 .xlsx/.csv 文件，也不是旧版本 .xls 文件，不能读取。")
 
@@ -84,7 +88,7 @@ def prune_extra_length(data_set: dict) -> tuple:
             if min_len is None or d_len < min_len:
                 min_len = d_len
 
-            if max_len == 0 and d_len > max_len:
+            if d_len > max_len:
                 max_len = d_len
 
             data_set[d_key] = d_lst
@@ -189,7 +193,7 @@ def main(source: str='xls', out: str='xls', conf: str=''):
         print("配置文件加载完成。")
 
         for xl_filed, xl_name in xls_in_dir(f"{root_dir}\\{source}"):
-            print(f"开始处理工作簿：{xl_name}")
+            print(f"  ==: 开始处理工作簿：{xl_name} :==  ")
 
             for (abb_name, acc_des) in acc_conf.items():
                 if not match(abb_name, xl_name):
@@ -209,17 +213,17 @@ def main(source: str='xls', out: str='xls', conf: str=''):
                 pol_meta = get_meta(policy)
                 collection = run_policy(policy, bundle, policy_name, abb_name)
 
-                record_cnt, prune_cnt =  prune_extra_length(collection)
+                record_cnt, prune_cnt = prune_extra_length(collection)
                 if record_cnt > 0:
                     pack = post_masquerade(pol_meta, collection)
                     assemble_data_pack(delivered_data_packs, pack, v_set)
 
                 inc_files.append((xl_name, record_cnt, prune_cnt))
-                print(f"  ==: {xl_name} 处理完成！")
+                print(f"  ==: {xl_name} 处理完成！ :==  \n")
                 break
             else:
                 exc_files.append(xl_name)
-                print(f"  ==: 没有为 {xl_name} 配置描述项，已忽略！")
+                print(f"  >>: 没有为 {xl_name} 配置描述项，已忽略！ :<<  ")
 
         write_file(delivered_data_packs, out_path, v_set)
         success = True
