@@ -82,7 +82,7 @@ def prune_extra_length(data_set: dict) -> tuple:
     min_len, max_len = None, 0
     try:
         for d_key, d_lst in data_set.items():
-            d_lst = list(d_lst)
+            d_lst = tuple(d_lst)
             d_len = len(d_lst)
 
             if min_len is None or d_len < min_len:
