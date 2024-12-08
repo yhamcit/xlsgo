@@ -2,7 +2,7 @@ from random import sample
 from time import mktime
 from typing import Iterable
 
-from strtools import strf_time_ts
+from strtools import strf_time_ts, str_capture_draw
 
 
 def PermutePeersAsCreditDebit(sources: tuple[Iterable], arguments: dict=None) -> Iterable:
@@ -32,6 +32,31 @@ def PermutePeersAsCreditDebit(sources: tuple[Iterable], arguments: dict=None) ->
 
         yield list(record.values())
 
+
+
+def ClearPeerAsPerDes(sources: tuple[Iterable], arguments: dict=None) -> Iterable:
+    MATCHCOL = "匹配列"
+    KEYWORDS = "匹配清理关键词列表"
+    DATASOURCE = "数据源"
+
+    assert arguments and MATCHCOL in arguments and KEYWORDS in arguments, f"清除对手插件应传入'{MATCHCOL}'和'{KEYWORDS}' 参数。"
+
+    fields = arguments[DATASOURCE]
+    m_col = arguments[MATCHCOL]
+    keywords = arguments[KEYWORDS]
+    lst = list(sources)
+    if len(lst) == 0:
+        yield tuple(), tuple(), tuple()
+    else:
+        for l in lst:
+            cols_d = dict(zip(fields, l))
+            col_k = cols_d[m_col]
+
+            for k in keywords:
+                if str_capture_draw((col_k, ), k):
+                    yield tuple(), tuple(), col_k
+                else:
+                    yield tuple(cols_d.values())
 
 
 def TimestampNonceFromDate(sources: tuple[Iterable], arguments: dict=None) -> Iterable:
