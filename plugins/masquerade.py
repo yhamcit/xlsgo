@@ -68,7 +68,7 @@ def ClearPeerAsPerDes(sources: tuple[Iterable], names: tuple[Iterable], argument
                 if str_matching(col_word, kword):
                     break
             else:
-                yield tuple(cols_d.values())
+                yield tuple(*cols_d.values())
                 continue
 
             yield ('', )
