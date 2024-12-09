@@ -19,6 +19,9 @@ from src import METADATA, POLICYNAME, FINISH, DATASOURCE, ARGUMENT, PLUGIN, VALU
 from writer import write_file
 
 
+
+
+
 def csv_converter(file_name: str, fd: BufferedReader|BufferedIOBase):
     wb = Workbook()
     ws = wb.create_sheet(splitext(file_name)[0])
@@ -157,7 +160,7 @@ def xls_in_dir(xl_dir: str):
                 with open(file_path, 'rb') as fd:
                     yield fd, file_name
             elif is_csv_file(file_path):
-                with open(file_path, 'rt') as fd:
+                with open(file_path, 'rt', encoding='ansi') as fd:
                     yield fd, file_name
             elif is_zip_file(file_path):
                 yield from xls_in_zip(file_path)
@@ -192,7 +195,7 @@ def main(source: str='xls', out: str='xls', conf: str=''):
         policies = get_policies(acc_conf)
         print("配置文件加载完成。")
 
-        for xl_filed, xl_name in xls_in_dir(f"{root_dir}\\{source}"):
+        for xl_fd, xl_name in xls_in_dir(f"{root_dir}\\{source}"):
             print(f"  ==: 开始处理工作簿：{xl_name} :==  ")
 
             for (abb_name, acc_des) in acc_conf.items():
@@ -200,7 +203,7 @@ def main(source: str='xls', out: str='xls', conf: str=''):
                     continue
 
                 acc_meta = get_meta(acc_des)
-                bundle = read_table_file(abb_name, acc_meta, acc_des, xl_name, xl_filed)
+                bundle = read_table_file(abb_name, acc_meta, acc_des, xl_name, xl_fd)
 
                 assert POLICYNAME in acc_meta, f"{abb_name}账户配置的{METADATA}中应包含适用的策略。"
                 policy_name = acc_meta[POLICYNAME]
