@@ -175,6 +175,7 @@ cython_debug/
 *.xls
 *.csv
 xls/
+backup/
 
 # compressed files
 *.zip

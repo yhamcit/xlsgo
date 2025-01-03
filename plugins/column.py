@@ -28,6 +28,7 @@ STAROW, WRAPROW, MAXROW = "起始行", "包裹行", "最大行"
 IN_FORMAT, DT_FORMAT = "输入格式", "日期格式"
 DC_COL_NS, DC_ID_KV = "收支列名", "收支标值{目标键:值,...}"
 
+DIGITSDELIMITER = "数位分隔符"
 
 
 
@@ -90,13 +91,20 @@ def OneShot(ws: Worksheet, cells: tuple[Cell]=None, meta_args: dict=None, field_
     else:
         non_blank: bool = False
 
+    if field_args and DIGITSDELIMITER in field_args:
+        delimiter: str = field_args[DIGITSDELIMITER]
+        assert delimiter, f"{DIGITSDELIMITER} 参数必须是非空的有效值。"
+    else:
+        delimiter: str = ''
+    punctuation = str.maketrans('', '', delimiter)
+
     assert meta_args and STAROW in meta_args, f"一次性读取插件应指定 {STAROW} 参数(必填)。"
 
     sta_row, max_row, end_row = determine_row_bands(meta_args, meta_args[STAROW], ws.max_row)
     print(f"[OneShot]:: 从 {cells[0].coordinate + (':' + cells[-1].coordinate if len(cells) > 1 else '')} "
           f"单元格为 {sta_row} 至 {end_row} 行生成匹配数据。")
 
-    col_vals = tuple(c.value for c in cells)
+    col_vals = tuple(str(c.value).translate(punctuation) for c in cells)
 
     if non_blank and not any(col_vals):
         return # !! This will generates an empty tuple
@@ -105,7 +113,7 @@ def OneShot(ws: Worksheet, cells: tuple[Cell]=None, meta_args: dict=None, field_
         col_vals = str_union(col_vals, col_caps, concat_mod, format_mod)
 
     if rgexp:
-        col_vals = str_capture_draw(col_vals, rgexp)
+        col_vals = str_capture_draw(col_vals, rgexp=rgexp)
 
     for i in range(end_row - sta_row):
         yield col_vals
@@ -123,6 +131,13 @@ def ColumnHead(ws: Worksheet, cells: tuple[Cell]=None, meta_args: dict=None, fie
     else:
         non_blank: bool = False
 
+    if field_args and DIGITSDELIMITER in field_args:
+        delimiter: str = field_args[DIGITSDELIMITER]
+        assert delimiter, f"{DIGITSDELIMITER} 参数必须是非空的有效值。"
+    else:
+        delimiter: str = ''
+    punctuation = str.maketrans('', '', delimiter)
+
     com_row = 0
     for row in (c.row for c in cells):
         if com_row == 0:
@@ -137,10 +152,11 @@ def ColumnHead(ws: Worksheet, cells: tuple[Cell]=None, meta_args: dict=None, fie
     print(f"[ColumnHead]:: 从 {sta_row} 行开始加载 {str(cols)} 等列数据。")
 
     for values in ws.iter_rows(sta_row, end_row, min_col, max_col, values_only=True):
-        col_vals = tuple(values[col - min_col] for col in cols)
+        col_vals = tuple(str(values[col - min_col]).translate(punctuation) for col in cols)
+
         try:
             if rgexp:
-                col_vals = str_capture_draw(col_vals, rgexp)
+                col_vals = str_capture_draw(col_vals, rgexp=rgexp)
         except ValueError:
             assert not non_blank, f"'非空列取得空值，数据：{''.join(col_vals)}':捕获'{rgexp}' "
 
@@ -173,7 +189,7 @@ def ColumnUnited(ws: Worksheet, cells: tuple[Cell]=None, meta_args: dict=None, f
     for col_vals in ColumnHead(ws, cells, meta_args, inhr_args):
         ts = tuple(str_union(col_vals, col_caps, concat_mod, format_mod))
         if rgexp:
-            yield str_capture_draw(ts, rgexp)
+            yield str_capture_draw(col_vals, rgexp=rgexp)
         else:
             yield ts
 
@@ -194,7 +210,7 @@ def IdentifyByColumn(ws: Worksheet, cells: tuple[Cell]=None, meta_args: dict=Non
 
         for row in ColumnHead(ws, cells, meta_args=meta_args, field_args=field_args):
             for i in cell_indxes:
-                if not row[i]:
+                if not row[i] or not float(row[i]):
                     continue
                 yield (dc_map[cell_names[i]], )
                 break

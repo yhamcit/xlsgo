@@ -2,6 +2,7 @@ from random import sample
 from time import mktime
 from typing import Iterable
 
+from hashlib import shake_256
 from strtools import strf_time_ts
 
 
@@ -36,20 +37,28 @@ def PermutePeersAsCreditDebit(sources: tuple[Iterable], arguments: dict=None) ->
 
 
 def TimestampNonceFromDate(sources: tuple[Iterable], arguments: dict=None) -> Iterable:
-    PRECISION = "时间戳精度"
-    NONCEDIGITS = "随机数位数"
+    DIGESTLENG = "摘要长度"
+    DIGESTFROM = "摘要字段"
+    # PRECISION  = "时间戳精度"
+    # NONCEDIGITS = "随机数位数"  :== 7  0
 
-    assert arguments and PRECISION in arguments and NONCEDIGITS in arguments, "时间戳和随机数需要指定精度及随机数长度。"
+    assert arguments and DIGESTLENG in arguments and DIGESTFROM in arguments, "时间戳和随机数需要指定精度及随机数长度。"
 
-    prec, ndigtc = arguments[PRECISION], arguments[NONCEDIGITS]
-    assert prec and ndigtc, f"{PRECISION}: {prec}; {NONCEDIGITS}: {ndigtc} 应为非空非零的有效值。"
+    diglen, digsrc = arguments[DIGESTLENG], arguments[DIGESTFROM]
+    assert diglen and len(digsrc) == 2, f"{DIGESTLENG}: {diglen}; {DIGESTFROM}: {digsrc} 应为非空非零的有效值。"
 
-    lst = list(sources)
-    if len(lst) == 0:
+    src_lst = list(sources)
+    if len(src_lst) == 0:
         yield tuple(), tuple()
     else:
-        for k, v in (p for l in lst for p in l):
-            nonce = sample(tuple('0123456789'), ndigtc)
-            ts = strf_time_ts(v)
-            yield (f"{int(mktime(ts) * prec)}{''.join(nonce)}",), v
+        for record in src_lst:
+            fields = tuple(pair[-1] for pair in record)
+            ts = strf_time_ts(fields[0])
+
+            mono_str = str(fields[slice(*digsrc)])
+            diger = shake_256()
+            diger.update(mono_str.encode(encoding='utf-8'))
+            digest = diger.hexdigest(diglen//2)
+
+            yield (f"{int(mktime(ts))}{digest}",), *fields
 
