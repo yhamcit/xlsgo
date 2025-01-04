@@ -1,6 +1,8 @@
 from time import strftime
 from typing import Iterable
 
+from re import match
+
 from openpyxl.cell import Cell
 from openpyxl.worksheet.worksheet import Worksheet
 
@@ -107,7 +109,7 @@ def OneShot(ws: Worksheet, cells: tuple[Cell]=None, meta_args: dict=None, field_
     col_vals = tuple(str(c.value).translate(punctuation) for c in cells)
 
     if non_blank and not any(col_vals):
-        return # !! This will generates an empty tuple
+        return # !! This will generate an empty tuple
 
     if concat_mod or format_mod:
         col_vals = str_union(col_vals, col_caps, concat_mod, format_mod)
@@ -152,7 +154,7 @@ def ColumnHead(ws: Worksheet, cells: tuple[Cell]=None, meta_args: dict=None, fie
     print(f"[ColumnHead]:: 从 {sta_row} 行开始加载 {str(cols)} 等列数据。")
 
     for values in ws.iter_rows(sta_row, end_row, min_col, max_col, values_only=True):
-        col_vals = tuple(str(values[col - min_col]).translate(punctuation) for col in cols)
+        col_vals = tuple(str(values[col - min_col]).translate(punctuation) if values[col - min_col] else None for col in cols)
 
         try:
             if rgexp:
@@ -210,15 +212,21 @@ def IdentifyByColumn(ws: Worksheet, cells: tuple[Cell]=None, meta_args: dict=Non
 
         for row in ColumnHead(ws, cells, meta_args=meta_args, field_args=field_args):
             for i in cell_indxes:
-                if not row[i] or not float(row[i]):
-                    continue
-                yield (dc_map[cell_names[i]], )
-                break
+                try:
+                    if not row[i] or not float(row[i]):
+                        continue
+                    yield (dc_map[cell_names[i]], )
+                    break
+                except ValueError:
+                    yield ('',)
+                    break
             else:
                 assert not non_blank, f"'非空列取得空值，数列：{','.join(str(cell_indxes))}。"
                 yield ('', )
     except ValueError as err:
-        assert False, f"{DC_ID_KV} 配置：'{str(err)}'与配置列头 {':'.join(c.coordinate for c in cells)} 的取值不符。"
+        m = match('.*(\'\\w+\').*', str(err))
+        assert False, (f"目标 {':'.join(c.coordinate for c in cells)} 值"
+                       f"-{m.group(1)}， 不在可选 '{str(dc_map)}' 中。" if m else str(err))
 
 
 
@@ -230,13 +238,15 @@ def IdentifyByValue(ws: Worksheet, cells: tuple[Cell]=None, meta_args: dict=None
     non_blank = field_args[NONBLANK] if field_args and NONBLANK in field_args else False
 
     for row in ColumnHead(ws, cells, meta_args=meta_args, field_args=field_args):
-        k = ' '.join(row)
         try:
+            k = ' '.join(row)
             yield (dc_map[k],)
-        except KeyError as e:
+        except KeyError:
             if non_blank:
                 break
             yield ('', )
+        except TypeError:
+            break
 
 
 def DateTimeFormator(ws: Worksheet, cells: tuple[Cell]=None, meta_args: dict=None, field_args: dict=None) -> Iterable:
@@ -256,6 +266,8 @@ def DateTimeFormator(ws: Worksheet, cells: tuple[Cell]=None, meta_args: dict=Non
             if non_blank:
                 break
             yield ('', )
+        except TypeError:
+            break
 
 
 def MergedDateTime(sources: tuple[Iterable], arguments: dict=None) -> Iterable:
