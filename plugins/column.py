@@ -152,7 +152,7 @@ def ColumnHead(ws: Worksheet, cells: tuple[Cell]=None, meta_args: dict=None, fie
     print(f"[ColumnHead]:: 从 {sta_row} 行开始加载 {str(cols)} 等列数据。")
 
     for values in ws.iter_rows(sta_row, end_row, min_col, max_col, values_only=True):
-        col_vals = tuple(str(values[col - min_col]).translate(punctuation) for col in cols)
+        col_vals = tuple(str(values[col - min_col]).translate(punctuation) if values[col - min_col] else '' for col in cols)
 
         try:
             if rgexp:
@@ -233,6 +233,29 @@ def IdentifyByValue(ws: Worksheet, cells: tuple[Cell]=None, meta_args: dict=None
         k = ' '.join(row)
         try:
             yield (dc_map[k],)
+        except KeyError as e:
+            if non_blank:
+                break
+            yield ('', )
+
+
+
+def IdentifyBySign(ws: Worksheet, cells: tuple[Cell]=None, meta_args: dict=None, field_args: dict=None) -> Iterable:
+
+    __POSITIVE__ = "正"
+    __NEGATIVE__ = "负"
+    assert field_args and DC_ID_KV in field_args, f"使用'CreditDebitByValue'必须指定 {DC_ID_KV} 收支映射项。"
+    dc_map = field_args[DC_ID_KV]
+
+    non_blank = field_args[NONBLANK] if field_args and NONBLANK in field_args else False
+
+    for row in ColumnHead(ws, cells, meta_args=meta_args, field_args=field_args):
+        k = ' '.join(row)
+        try:
+            if float(k) >= 0:
+                yield (dc_map[__POSITIVE__],)
+            else:
+                yield (dc_map[__NEGATIVE__],)
         except KeyError as e:
             if non_blank:
                 break

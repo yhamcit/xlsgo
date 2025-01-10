@@ -25,7 +25,7 @@ def PermutePeersAsCreditDebit(sources: tuple[Iterable], arguments: dict=None) ->
 
     for record in (dict(r) for r in sources):
         try:
-            if act[''.join(record.pop(key))]:
+            if act[''.join(record[key])]:
                 for r, p in prsqu:
                     record[r], record[p] = record[p], record[r]
         except KeyError:
